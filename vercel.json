@@ -1,7 +1,4 @@
 {
-  "framework": "nextjs",
-  "buildCommand": "cd simple-schedule && npm install && npm run build",
-  "outputDirectory": "simple-schedule/.next",
-  "installCommand": "cd simple-schedule && npm install",
-  "devCommand": "cd simple-schedule && npm run dev"
+  "rootDirectory": "simple-schedule",
+  "framework": "nextjs"
 }
