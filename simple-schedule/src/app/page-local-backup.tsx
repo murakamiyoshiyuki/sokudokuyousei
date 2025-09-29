@@ -3,23 +3,21 @@
 import { useState, useEffect } from 'react'
 import { format, parseISO } from 'date-fns'
 import { v4 as uuidv4 } from 'uuid'
-import { supabase } from '@/lib/supabase'
 
 type Slot = {
   id: string
-  provider_name: string
+  providerName: string
   date: string
   time: string
-  max_attendees: number
-  provider_id: string
-  zoom_url?: string
-  exam_type?: 'provisional' | 'final'
-  attendees?: { id: string; attendee_name: string; attendee_id: string }[]
+  maxAttendees: number
+  attendees: { id: string; name: string }[]
+  providerId: string
+  zoomUrl?: string
+  examType?: 'provisional' | 'final'
 }
 
 export default function Home() {
   const [slots, setSlots] = useState<Slot[]>([])
-  const [loading, setLoading] = useState(true)
   const [myId, setMyId] = useState<string>('')
   const [providerName, setProviderName] = useState('')
   const [selectedDate, setSelectedDate] = useState('')
@@ -32,29 +30,8 @@ export default function Home() {
   const [editingSlot, setEditingSlot] = useState<Slot | null>(null)
   const [newZoomUrl, setNewZoomUrl] = useState('')
 
-  // データを取得
-  const fetchSlots = async () => {
-    setLoading(true)
-    try {
-      // スロットと参加者を取得
-      const { data: slotsData, error: slotsError } = await supabase
-        .from('slots')
-        .select('*, attendees(*)')
-        .order('date', { ascending: true })
-        .order('time', { ascending: true })
-
-      if (slotsError) throw slotsError
-
-      setSlots(slotsData || [])
-    } catch (error) {
-      console.error('Error fetching slots:', error)
-    } finally {
-      setLoading(false)
-    }
-  }
-
   useEffect(() => {
-    // 自分のIDを取得または生成
+    // ローカルストレージから自分のIDを取得または生成
     let id = localStorage.getItem('myId')
     if (!id) {
       id = uuidv4()
@@ -62,129 +39,117 @@ export default function Home() {
     }
     setMyId(id)
 
-    // データを取得
-    fetchSlots()
-
-    // リアルタイム更新を設定
-    const channel = supabase
-      .channel('slots-changes')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'slots' }, () => {
-        fetchSlots()
-      })
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'attendees' }, () => {
-        fetchSlots()
-      })
-      .subscribe()
-
-    return () => {
-      supabase.removeChannel(channel)
+    // ローカルストレージからスロットデータを取得
+    const savedSlots = localStorage.getItem('slots')
+    if (savedSlots) {
+      try {
+        const parsed = JSON.parse(savedSlots)
+        // データ形式の移行（古いデータとの互換性）
+        const migratedSlots = parsed.map((slot: any) => ({
+          ...slot,
+          attendees: slot.attendees || [],
+          maxAttendees: slot.maxAttendees || 1,
+          zoomUrl: slot.zoomUrl || '',
+          examType: slot.examType || 'provisional',
+        }))
+        setSlots(migratedSlots)
+      } catch (error) {
+        console.error('Failed to parse slots:', error)
+        localStorage.removeItem('slots')
+      }
     }
   }, [])
 
+  useEffect(() => {
+    // スロットデータをローカルストレージに保存
+    if (slots.length > 0) {
+      localStorage.setItem('slots', JSON.stringify(slots))
+    }
+  }, [slots])
+
   // レッスン枠を追加
-  const handleAddSlot = async () => {
+  const handleAddSlot = () => {
     if (!providerName || !selectedDate || !selectedTime) {
       alert('すべての項目を入力してください')
       return
     }
 
-    try {
-      const { error } = await supabase.from('slots').insert({
-        provider_name: providerName,
-        date: selectedDate,
-        time: selectedTime,
-        max_attendees: maxAttendees,
-        provider_id: myId,
-        zoom_url: zoomUrl || null,
-        exam_type: examType,
-      })
-
-      if (error) throw error
-
-      // フォームをリセット
-      setProviderName('')
-      setSelectedDate('')
-      setSelectedTime('')
-      setMaxAttendees(1)
-      setZoomUrl('')
-      setExamType('provisional')
-
-      // データを再取得
-      fetchSlots()
-    } catch (error) {
-      console.error('Error adding slot:', error)
-      alert('エラーが発生しました')
+    const newSlot: Slot = {
+      id: uuidv4(),
+      providerName,
+      date: selectedDate,
+      time: selectedTime,
+      maxAttendees,
+      attendees: [],
+      providerId: myId,
+      zoomUrl: zoomUrl || undefined,
+      examType: examType,
     }
+
+    setSlots([...slots, newSlot])
+    setProviderName('')
+    setSelectedDate('')
+    setSelectedTime('')
+    setMaxAttendees(1)
+    setZoomUrl('')
+    setExamType('provisional')
   }
 
   // 予約する
-  const handleBookSlot = async () => {
+  const handleBookSlot = () => {
     if (!selectedSlot || !attendeeName) return
 
-    try {
-      const { error } = await supabase.from('attendees').insert({
-        slot_id: selectedSlot.id,
-        attendee_name: attendeeName,
-        attendee_id: myId,
-      })
+    const updatedSlots = slots.map(slot => {
+      if (slot.id === selectedSlot.id) {
+        return {
+          ...slot,
+          attendees: [...slot.attendees, { id: myId, name: attendeeName }],
+        }
+      }
+      return slot
+    })
 
-      if (error) throw error
-
-      setSelectedSlot(null)
-      setAttendeeName('')
-      fetchSlots()
-    } catch (error) {
-      console.error('Error booking slot:', error)
-      alert('エラーが発生しました')
-    }
+    setSlots(updatedSlots)
+    setSelectedSlot(null)
+    setAttendeeName('')
   }
 
   // ZOOM URLを更新
-  const handleUpdateZoomUrl = async (slotId: string, url: string) => {
-    try {
-      const { error } = await supabase
-        .from('slots')
-        .update({ zoom_url: url || null })
-        .eq('id', slotId)
-
-      if (error) throw error
-
-      setEditingSlot(null)
-      setNewZoomUrl('')
-      fetchSlots()
-    } catch (error) {
-      console.error('Error updating zoom URL:', error)
-      alert('エラーが発生しました')
-    }
+  const handleUpdateZoomUrl = (slotId: string, url: string) => {
+    const updatedSlots = slots.map(slot => {
+      if (slot.id === slotId) {
+        return {
+          ...slot,
+          zoomUrl: url || undefined,
+        }
+      }
+      return slot
+    })
+    setSlots(updatedSlots)
+    setEditingSlot(null)
+    setNewZoomUrl('')
   }
 
   // キャンセル（レッスン側・受講側）
-  const handleCancel = async (slotId: string, attendeeId?: string) => {
-    try {
-      if (attendeeId) {
-        // 受講側のキャンセル（予約を解除）
-        const { error } = await supabase
-          .from('attendees')
-          .delete()
-          .eq('slot_id', slotId)
-          .eq('attendee_id', attendeeId)
+  const handleCancel = (slotId: string, attendeeId?: string) => {
+    const slot = slots.find(s => s.id === slotId)
+    if (!slot) return
 
-        if (error) throw error
-      } else {
-        // レッスン側のキャンセル（枠を削除）
-        const { error } = await supabase
-          .from('slots')
-          .delete()
-          .eq('id', slotId)
-          .eq('provider_id', myId)
-
-        if (error) throw error
-      }
-
-      fetchSlots()
-    } catch (error) {
-      console.error('Error canceling:', error)
-      alert('エラーが発生しました')
+    if (slot.providerId === myId && !attendeeId) {
+      // レッスン側のキャンセル（枠を削除）
+      setSlots(slots.filter(s => s.id !== slotId))
+    } else if (attendeeId) {
+      // 受講側のキャンセル（予約を解除）
+      const updatedSlots = slots.map(s => {
+        if (s.id === slotId) {
+          return {
+            ...s,
+            attendees: s.attendees.filter(a => a.id !== attendeeId),
+          }
+        }
+        return s
+      })
+      setSlots(updatedSlots)
     }
   }
 
@@ -208,14 +173,6 @@ export default function Home() {
     timeOptions.push(`${hour.toString().padStart(2, '0')}:30`)
   }
 
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center">
-        <div className="text-xl">読み込み中...</div>
-      </div>
-    )
-  }
-
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 py-8">
       <div className="max-w-6xl mx-auto px-4">
@@ -235,6 +192,23 @@ export default function Home() {
             レッスン練習 スケジュール調整
           </h1>
         </div>
+
+        {/* データリセットボタン（開発用） */}
+        {typeof window !== 'undefined' && window.location.hostname === 'localhost' && (
+          <div className="text-center mb-4">
+            <button
+              onClick={() => {
+                if (confirm('すべてのデータをリセットしますか？')) {
+                  localStorage.clear()
+                  window.location.reload()
+                }
+              }}
+              className="text-xs text-gray-500 hover:text-gray-700 underline"
+            >
+              データリセット（開発用）
+            </button>
+          </div>
+        )}
 
         {/* レッスン枠追加フォーム */}
         <div className="bg-white rounded-2xl shadow-xl p-6 mb-8">
@@ -269,7 +243,7 @@ export default function Home() {
               >
                 <option value="">選択</option>
                 {timeOptions.map(time => (
-                  <option key={time} value={`${time}:00`}>{time}</option>
+                  <option key={time} value={time}>{time}</option>
                 ))}
               </select>
             </div>
@@ -338,10 +312,10 @@ export default function Home() {
                       .sort((a, b) => a.time.localeCompare(b.time))
                       .map(slot => {
                         const attendees = slot.attendees || []
-                        const maxAttendees = slot.max_attendees || 1
+                        const maxAttendees = slot.maxAttendees || 1
                         const isFull = attendees.length >= maxAttendees
-                        const isMyLesson = slot.provider_id === myId
-                        const isMyBooking = attendees.some(a => a.attendee_id === myId)
+                        const isMyLesson = slot.providerId === myId
+                        const isMyBooking = attendees.some(a => a.id === myId)
 
                         return (
                           <div
@@ -355,20 +329,18 @@ export default function Home() {
                           >
                             {/* 時間とレッスン生 */}
                             <div className="mb-3">
-                              <p className="text-2xl font-bold text-indigo-900">
-                                {slot.time.substring(0, 5)}
-                              </p>
+                              <p className="text-2xl font-bold text-indigo-900">{slot.time}</p>
                               <p className="text-lg font-semibold text-gray-800 mt-1">
-                                👩‍🏫 {slot.provider_name}
+                                👩‍🏫 {slot.providerName}
                               </p>
                               {/* 検定タイプ表示 */}
                               <div className="mt-2">
                                 <span className={`inline-block px-3 py-1 rounded-full text-sm font-medium ${
-                                  slot.exam_type === 'final'
+                                  slot.examType === 'final'
                                     ? 'bg-blue-100 text-blue-800 border-2 border-blue-300'
                                     : 'bg-gray-100 text-gray-600 border border-gray-300'
                                 }`}>
-                                  {slot.exam_type === 'final' ? '🎯 本検定' : '📝 仮検定'}
+                                  {slot.examType === 'final' ? '🎯 本検定' : '📝 仮検定'}
                                 </span>
                               </div>
 
@@ -407,10 +379,10 @@ export default function Home() {
                                 </div>
                               ) : (
                                 <>
-                                  {slot.zoom_url ? (
+                                  {slot.zoomUrl ? (
                                     <div className="mt-2 flex items-center gap-2">
                                       <a
-                                        href={slot.zoom_url}
+                                        href={slot.zoomUrl}
                                         target="_blank"
                                         rel="noopener noreferrer"
                                         onClick={(e) => e.stopPropagation()}
@@ -423,7 +395,7 @@ export default function Home() {
                                           onClick={(e) => {
                                             e.stopPropagation()
                                             setEditingSlot(slot)
-                                            setNewZoomUrl(slot.zoom_url || '')
+                                            setNewZoomUrl(slot.zoomUrl || '')
                                           }}
                                           className="text-xs text-gray-500 hover:text-gray-700"
                                         >
@@ -465,12 +437,12 @@ export default function Home() {
                                 <div className="space-y-1">
                                   {attendees.map(attendee => (
                                     <div key={attendee.id} className="flex items-center justify-between bg-white rounded-lg px-3 py-2">
-                                      <span className="text-sm text-gray-700">👤 {attendee.attendee_name}</span>
-                                      {attendee.attendee_id === myId && (
+                                      <span className="text-sm text-gray-700">👤 {attendee.name}</span>
+                                      {attendee.id === myId && (
                                         <button
                                           onClick={(e) => {
                                             e.stopPropagation()
-                                            handleCancel(slot.id, attendee.attendee_id)
+                                            handleCancel(slot.id, attendee.id)
                                           }}
                                           className="text-xs text-red-500 hover:text-red-700 font-medium"
                                         >
@@ -558,30 +530,30 @@ export default function Home() {
               <div className="mb-3">
                 <p className="text-sm text-gray-600 mb-1">日時</p>
                 <p className="font-bold text-lg">
-                  {format(parseISO(selectedSlot.date), 'MM月dd日')} {selectedSlot.time.substring(0, 5)}
+                  {format(parseISO(selectedSlot.date), 'MM月dd日')} {selectedSlot.time}
                 </p>
               </div>
               <div className="mb-3">
                 <p className="text-sm text-gray-600 mb-1">レッスン生</p>
-                <p className="font-bold text-lg">{selectedSlot.provider_name}</p>
+                <p className="font-bold text-lg">{selectedSlot.providerName}</p>
               </div>
               <div className="mb-3">
                 <p className="text-sm text-gray-600 mb-1">検定タイプ</p>
                 <p className="font-bold text-lg">
-                  {selectedSlot.exam_type === 'final' ? '🎯 本検定' : '📝 仮検定'}
+                  {selectedSlot.examType === 'final' ? '🎯 本検定' : '📝 仮検定'}
                 </p>
               </div>
               <div className="mb-3">
                 <p className="text-sm text-gray-600 mb-1">現在の参加者</p>
                 <p className="font-bold text-lg text-green-600">
-                  {(selectedSlot.attendees || []).length}/{selectedSlot.max_attendees || 1}人
+                  {(selectedSlot.attendees || []).length}/{selectedSlot.maxAttendees || 1}人
                 </p>
               </div>
-              {selectedSlot.zoom_url && (
+              {selectedSlot.zoomUrl && (
                 <div>
                   <p className="text-sm text-gray-600 mb-1">ZOOM URL</p>
                   <a
-                    href={selectedSlot.zoom_url}
+                    href={selectedSlot.zoomUrl}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="text-blue-600 hover:text-blue-800 underline text-sm"
@@ -592,7 +564,7 @@ export default function Home() {
               )}
             </div>
 
-            {(selectedSlot.attendees || []).length >= (selectedSlot.max_attendees || 1) ? (
+            {(selectedSlot.attendees || []).length >= (selectedSlot.maxAttendees || 1) ? (
               <div className="text-center py-4">
                 <p className="text-red-600 font-bold">この枠は満席です</p>
                 <button
@@ -644,5 +616,5 @@ export default function Home() {
         </div>
       )}
     </div>
-  )
+  );
 }
