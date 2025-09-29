@@ -13,6 +13,7 @@ type Slot = {
   attendees: { id: string; name: string }[]
   providerId: string
   zoomUrl?: string
+  examType?: 'provisional' | 'final'
 }
 
 export default function Home() {
@@ -23,6 +24,7 @@ export default function Home() {
   const [selectedTime, setSelectedTime] = useState('')
   const [maxAttendees, setMaxAttendees] = useState(1)
   const [zoomUrl, setZoomUrl] = useState('')
+  const [examType, setExamType] = useState<'provisional' | 'final'>('provisional')
   const [selectedSlot, setSelectedSlot] = useState<Slot | null>(null)
   const [attendeeName, setAttendeeName] = useState('')
   const [editingSlot, setEditingSlot] = useState<Slot | null>(null)
@@ -48,6 +50,7 @@ export default function Home() {
           attendees: slot.attendees || [],
           maxAttendees: slot.maxAttendees || 1,
           zoomUrl: slot.zoomUrl || '',
+          examType: slot.examType || 'provisional',
         }))
         setSlots(migratedSlots)
       } catch (error) {
@@ -80,6 +83,7 @@ export default function Home() {
       attendees: [],
       providerId: myId,
       zoomUrl: zoomUrl || undefined,
+      examType: examType,
     }
 
     setSlots([...slots, newSlot])
@@ -88,6 +92,7 @@ export default function Home() {
     setSelectedTime('')
     setMaxAttendees(1)
     setZoomUrl('')
+    setExamType('provisional')
   }
 
   // 予約する
@@ -254,6 +259,17 @@ export default function Home() {
                 ))}
               </select>
             </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">検定タイプ</label>
+              <select
+                value={examType}
+                onChange={(e) => setExamType(e.target.value as 'provisional' | 'final')}
+                className="w-full px-4 py-2 border-2 border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+              >
+                <option value="provisional">仮検定</option>
+                <option value="final">本検定</option>
+              </select>
+            </div>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-4">
             <div className="md:col-span-2">
@@ -317,6 +333,16 @@ export default function Home() {
                               <p className="text-lg font-semibold text-gray-800 mt-1">
                                 👩‍🏫 {slot.providerName}
                               </p>
+                              {/* 検定タイプ表示 */}
+                              <div className="mt-2">
+                                <span className={`inline-block px-3 py-1 rounded-full text-sm font-medium ${
+                                  slot.examType === 'final'
+                                    ? 'bg-blue-100 text-blue-800 border-2 border-blue-300'
+                                    : 'bg-gray-100 text-gray-600 border border-gray-300'
+                                }`}>
+                                  {slot.examType === 'final' ? '🎯 本検定' : '📝 仮検定'}
+                                </span>
+                              </div>
 
                               {/* ZOOM URL */}
                               {editingSlot?.id === slot.id && isMyLesson ? (
@@ -536,6 +562,12 @@ export default function Home() {
               <div className="mb-3">
                 <p className="text-sm text-gray-600 mb-1">レッスン生</p>
                 <p className="font-bold text-lg">{selectedSlot.providerName}</p>
+              </div>
+              <div className="mb-3">
+                <p className="text-sm text-gray-600 mb-1">検定タイプ</p>
+                <p className="font-bold text-lg">
+                  {selectedSlot.examType === 'final' ? '🎯 本検定' : '📝 仮検定'}
+                </p>
               </div>
               <div className="mb-3">
                 <p className="text-sm text-gray-600 mb-1">現在の参加者</p>
