@@ -469,29 +469,39 @@ export default function Home() {
         </div>
       </div>
 
-      {/* 宣伝セクション（控えめ） */}
+      {/* 宣伝セクション */}
       <div className="max-w-4xl mx-auto mt-16 mb-8 px-4">
-        <div className="bg-white/80 backdrop-blur rounded-xl p-6 border border-gray-200">
-          <p className="text-center text-base text-gray-700 mb-4">
-            こういうサイトが簡単に作れるようになるAIセミナーやってます。<br />
-            まずは無料体験セミナーに是非！
-          </p>
+        <div className="bg-gradient-to-r from-blue-50 to-purple-50 rounded-xl p-8 border-2 border-blue-200 shadow-lg">
+          <div className="text-center mb-6">
+            <h3 className="text-xl font-bold text-gray-800 mb-2">🎯 AIでWebサイト制作を学ぼう！</h3>
+            <p className="text-base text-gray-700">
+              こういうサイトが簡単に作れるようになるAIセミナーやってます。（※製作時間30分）<br />
+              まずは無料体験セミナーに是非！
+            </p>
+          </div>
 
-          <div className="text-center space-y-2 mb-4">
-            <p className="text-base font-medium">
-              👉 10/14(火) 21:00～ ZOOM
-            </p>
-            <p className="text-base font-medium text-green-600">
-              👉 参加無料
-            </p>
-            <a
-              href="https://docs.google.com/forms/d/e/1FAIpQLScpD-uXPZ6FbkH3zcUSZFB1ZVuWXY0sTD4v8L5k_kjLL0dasQ/viewform"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-block text-blue-600 hover:text-blue-800 text-base underline"
-            >
-              無料体験セミナーに申し込む
-            </a>
+          <div className="bg-white rounded-lg p-4 mb-6">
+            <div className="text-center space-y-3">
+              <div className="flex justify-center items-center gap-4">
+                <span className="bg-blue-100 text-blue-800 px-3 py-1 rounded-full text-sm font-semibold">
+                  📅 10/14(火) 21:00～
+                </span>
+                <span className="bg-green-100 text-green-800 px-3 py-1 rounded-full text-sm font-semibold">
+                  ✨ 参加無料
+                </span>
+                <span className="bg-purple-100 text-purple-800 px-3 py-1 rounded-full text-sm font-semibold">
+                  💻 ZOOM開催
+                </span>
+              </div>
+              <a
+                href="https://docs.google.com/forms/d/e/1FAIpQLScpD-uXPZ6FbkH3zcUSZFB1ZVuWXY0sTD4v8L5k_kjLL0dasQ/viewform"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-block bg-gradient-to-r from-blue-500 to-purple-600 text-white px-6 py-3 rounded-lg font-bold hover:from-blue-600 hover:to-purple-700 transition-all transform hover:scale-105 shadow-md"
+              >
+                🚀 無料体験セミナーに申し込む
+              </a>
+            </div>
           </div>
 
           {/* サムネイル画像 */}
