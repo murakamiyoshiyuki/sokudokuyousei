@@ -469,6 +469,47 @@ export default function Home() {
         </div>
       </div>
 
+      {/* 宣伝セクション（控えめ） */}
+      <div className="max-w-4xl mx-auto mt-16 mb-8 px-4">
+        <div className="bg-white/80 backdrop-blur rounded-xl p-6 border border-gray-200">
+          <p className="text-center text-base text-gray-700 mb-4">
+            こういうサイトが簡単に作れるようになるAIセミナーやってます。<br />
+            まずは無料体験セミナーに是非！
+          </p>
+
+          <div className="text-center space-y-2 mb-4">
+            <p className="text-base font-medium">
+              👉 10/14(火) 21:00～ ZOOM
+            </p>
+            <p className="text-base font-medium text-green-600">
+              👉 参加無料
+            </p>
+            <a
+              href="https://docs.google.com/forms/d/e/1FAIpQLScpD-uXPZ6FbkH3zcUSZFB1ZVuWXY0sTD4v8L5k_kjLL0dasQ/viewform"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-block text-blue-600 hover:text-blue-800 text-base underline"
+            >
+              無料体験セミナーに申し込む
+            </a>
+          </div>
+
+          {/* サムネイル画像 */}
+          {typeof window !== 'undefined' && (
+            <div className="flex justify-center">
+              <img
+                src="/ai-seminar-thumbnail.png"
+                alt="AIセミナー"
+                className="w-80 rounded-lg shadow-md"
+                onError={(e) => {
+                  e.currentTarget.style.display = 'none'
+                }}
+              />
+            </div>
+          )}
+        </div>
+      </div>
+
       {/* 予約モーダル */}
       {selectedSlot && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
