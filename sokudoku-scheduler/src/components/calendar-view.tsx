@@ -24,15 +24,18 @@ export default function CalendarView({ slots, onSelectSlot, isActive }: Calendar
     const booking = slot.bookings.find(b => b.status === 'booked')
     const isBooked = !!booking
 
+    const examType = (slot as any).exam_type === 'final' ? '本検定' : '仮検定'
+
     return {
       id: slot.id,
       title: isBooked
-        ? `${slot.provider_name} → ${booking.attendee_name}`
-        : `${slot.provider_name} (空き)`,
+        ? `[${examType}] ${slot.provider_name} → ${booking.attendee_name}`
+        : `[${examType}] ${slot.provider_name} (空き)`,
       start: new Date(slot.start_at),
       end: new Date(slot.end_at),
       resource: slot,
       isBooked,
+      examType,
     }
   })
 
@@ -52,7 +55,11 @@ export default function CalendarView({ slots, onSelectSlot, isActive }: Calendar
         }}
         eventPropGetter={(event) => ({
           style: {
-            backgroundColor: event.isBooked ? '#10b981' : '#6b7280',
+            backgroundColor: event.isBooked
+              ? '#10b981'
+              : event.examType === '本検定'
+                ? '#3b82f6'
+                : '#6b7280',
             cursor: !event.isBooked && isActive ? 'pointer' : 'default',
           },
         })}

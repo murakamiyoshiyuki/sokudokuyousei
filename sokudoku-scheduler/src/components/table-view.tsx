@@ -32,6 +32,7 @@ export default function TableView({ slots, onSelectSlot, isActive }: TableViewPr
             <th className="text-left p-2">日付</th>
             <th className="text-left p-2">時間</th>
             <th className="text-left p-2">提供者</th>
+            <th className="text-left p-2">検定</th>
             <th className="text-left p-2">状態</th>
             <th className="text-left p-2">受講者</th>
             <th className="text-left p-2">操作</th>
@@ -50,6 +51,13 @@ export default function TableView({ slots, onSelectSlot, isActive }: TableViewPr
                   {formatTimeJST(slot.start_at)} - {formatTimeJST(slot.end_at)}
                 </td>
                 <td className="p-2">{slot.provider_name}</td>
+                <td className="p-2">
+                  {(slot as any).exam_type === 'final' ? (
+                    <span className="font-medium text-primary">本検定</span>
+                  ) : (
+                    <span className="text-muted-foreground">仮検定</span>
+                  )}
+                </td>
                 <td className="p-2">
                   {isCanceled ? (
                     <span className="text-muted-foreground">キャンセル済</span>

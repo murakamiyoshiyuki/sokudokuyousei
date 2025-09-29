@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { toast } from 'sonner'
 import { createClient } from '@/lib/supabase/client'
 import { generateSecureToken } from '@/lib/utils/token'
@@ -26,6 +27,7 @@ export default function AddSlotDialog({ eventId, isOpen, onClose }: AddSlotDialo
     providerName: '',
     startAt: '',
     note: '',
+    examType: 'provisional', // 'provisional' (仮検定) or 'final' (本検定)
   })
 
   async function handleSubmit(e: React.FormEvent) {
@@ -45,6 +47,7 @@ export default function AddSlotDialog({ eventId, isOpen, onClose }: AddSlotDialo
         end_at: endAt.toISOString(),
         cancel_token: cancelToken,
         note: formData.note || null,
+        exam_type: formData.examType,
       }).select().single()
 
       if (error) {
@@ -67,7 +70,7 @@ export default function AddSlotDialog({ eventId, isOpen, onClose }: AddSlotDialo
 
   function handleClose() {
     setCancelUrl(null)
-    setFormData({ providerName: '', startAt: '', note: '' })
+    setFormData({ providerName: '', startAt: '', note: '', examType: 'provisional' })
     onClose()
   }
 
@@ -137,6 +140,21 @@ export default function AddSlotDialog({ eventId, isOpen, onClose }: AddSlotDialo
               value={formData.startAt}
               onChange={(e) => setFormData({ ...formData, startAt: e.target.value })}
             />
+          </div>
+          <div>
+            <Label htmlFor="examType">検定タイプ</Label>
+            <Select
+              value={formData.examType}
+              onValueChange={(value) => setFormData({ ...formData, examType: value })}
+            >
+              <SelectTrigger id="examType" className="w-full">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="provisional">仮検定</SelectItem>
+                <SelectItem value="final">本検定</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
           <div>
             <Label htmlFor="note">メモ（任意）</Label>
