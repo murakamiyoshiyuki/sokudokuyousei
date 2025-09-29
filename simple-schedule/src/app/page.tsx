@@ -499,8 +499,11 @@ export default function Home() {
       <div className="max-w-4xl mx-auto mt-12 mb-8 px-4">
         <div className="bg-gray-50 rounded-lg p-6 border border-gray-200">
           <div className="text-center">
+            <p className="text-sm text-gray-600 mb-2">
+              こういうサイトが簡単に作れるようになるAIセミナーやってます。（※製作時間30分）
+            </p>
             <p className="text-sm text-gray-600 mb-3">
-              AIでWebサイト制作を学ぶ無料セミナー開催中
+              まずは無料体験セミナーに是非！
             </p>
             <div className="text-sm text-gray-500 mb-3">
               10/14(火) 21:00～ | ZOOM開催
